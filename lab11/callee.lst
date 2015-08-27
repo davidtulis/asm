@@ -1,0 +1,40 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/18/14 15:29:53
+callee.asm						     Page 1 - 1
+
+
+				;TITLE callee (callee.asm)
+
+				; Joe Dumas
+				; CPEN 3710
+
+				; This program is called by a C++ program with the
+				; 3 coefficients A, B, C of the quadratic formula.
+				; It computes B^2 - 4AC and returns the result in EAX.
+				; Target: protected-address mode.
+
+				;include Irvine32.inc
+				.386
+				.model FLAT, C 
+
+				public quadform				; quadform can be called by external code
+
+ 00000000			.data
+
+ 00000000			.code
+
+ 00000000			quadform proc
+ 00000000  55				push  ebp				; save caller's base pointer
+ 00000001  8B EC			mov   ebp, esp			; set up a new base pointer
+					;saved base pointer +0
+					;return address +8
+					;a +16
+					;b +24
+					;c +32
+					
+					
+					
+ 00000003  C3				ret				; return (caller to clean up args)
+
+ 00000004			quadform endp
+
+				END

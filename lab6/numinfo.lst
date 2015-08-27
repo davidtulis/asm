@@ -1,0 +1,135 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    10/07/14 16:58:13
+numinfo.asm						     Page 1 - 1
+
+
+				;David Tulis
+				;CPEN 3710 lab 6
+				;Due 10/14/14
+
+				;This program will ask the user for input until a 0 is entered
+				;the numbers should be 32 bit signed integers
+				;once 0 is entered, we will tell the user information about each number that was entered
+				;specifically its sign (positive or negative), whether or not it is divisible by 16, and whether or not it can be represented with 5 decimal digits
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+ 00000000			.data
+ 00000000 69 73 20 61 20	positiveMsg 		BYTE "is a positive number",0
+	   70 6F 73 69 74
+	   69 76 65 20 6E
+	   75 6D 62 65 72
+	   00
+ 00000015 69 73 20 61 20	negativeMsg 		BYTE "is a negative number",0
+	   6E 65 67 61 74
+	   69 76 65 20 6E
+	   75 6D 62 65 72
+	   00
+ 0000002A 69 73 20 65 76	isDiv16Msg 			BYTE "is evenly divisible by 16",0
+	   65 6E 6C 79 20
+	   64 69 76 69 73
+	   69 62 6C 65 20
+	   62 79 20 31 36
+	   00
+ 00000044 69 73 20 6E 6F	isNotDiv16Msg 		BYTE "is not evenly divisible by 16",0
+	   74 20 65 76 65
+	   6E 6C 79 20 64
+	   69 76 69 73 69
+	   62 6C 65 20 62
+	   79 20 31 36 00
+ 00000062 63 61 6E 20 62	is5DigRepMsg 		BYTE "can be correctly represented in five decimal digits", 0
+	   65 20 63 6F 72
+	   72 65 63 74 6C
+	   79 20 72 65 70
+	   72 65 73 65 6E
+	   74 65 64 20 69
+	   6E 20 66 69 76
+	   65 20 64 65 63
+	   69 6D 61 6C 20
+	   64 69 67 69 74
+	   73 00
+ 00000096 63 61 6E 6E 6F	isNot5DigRepMsg 	BYTE "cannot be correctly represented in five decimal digits", 0
+	   74 20 62 65 20
+	   63 6F 72 72 65
+	   63 74 6C 79 20
+	   72 65 70 72 65
+	   73 65 6E 74 65
+	   64 20 69 6E 20
+	   66 69 76 65 20
+	   64 65 63 69 6D
+	   61 6C 20 64 69
+	   67 69 74 73 00
+
+ 00000000			.code
+ 00000000			main PROC
+ 00000000			lp1: 
+ 00000000  E8 00000000 E		call ReadInt					;get input from user. defined in irvine32.inc
+ 00000005  83 F8 00			cmp eax, 0						;is the user input 0?
+ 00000008  0F 84 00000087		jz endlp1						;if so, jump to endlp1 (exit the loop)
+													;if not, display information about the number (stored in eax)
+ 0000000E  83 F8 00			cmp eax, 0						;compare number to 0
+ 00000011  7F 11			jg greater						;if the element in greater than 0, go to greater
+ 00000013  BA 00000015 R		mov edx, OFFSET negativeMsg		;if it isn't greater than 0, print negative message...
+ 00000018  E8 00000000 E		call WriteString
+ 0000001D  E8 00000000 E		call CRLF						;move cursor down
+ 00000022  EB 0F			jmp divTest						;...and go to the next test
+ 00000024				greater: 
+ 00000024  BA 00000000 R			mov edx, OFFSET positiveMsg	;print positiveMsg
+ 00000029  E8 00000000 E			call WriteString
+ 0000002E  E8 00000000 E			call CRLF					;move cursor down
+
+ 00000033				divTest: 
+					;if the number is evenly divisible by 16, eax will have the form ???? ???0 (hex)
+					;so we and al with F0 (hex)
+ 00000033  8B D8			mov ebx, eax
+ 00000035  80 E3 FF			and bl, 0FFh
+					;6A= 0110 1010
+					;and 1111 1111
+					;    0110 1010 
+					
+					; 	 1010 0000
+					;and 1111 1111
+					;    1010 0000 
+ 00000038  C0 E3 04			shl bl, 4
+ 0000003B  80 FB 00			cmp bl, 0						;if it is 0, it is divisible by 16
+ 0000003E  74 11			jz isDivis
+ 00000040  BA 00000044 R		mov edx, offset isNotDiv16Msg
+ 00000045  E8 00000000 E		call WriteString
+ 0000004A  E8 00000000 E		call CRLF
+ 0000004F  EB 0F			jmp Dig5RepTest
+ 00000051				isDivis: 
+ 00000051  BA 0000002A R			mov edx, offset isDiv16Msg
+ 00000056  E8 00000000 E			call WriteString
+ 0000005B  E8 00000000 E			call CRLF
+					
+					
+ 00000060				Dig5RepTest:
+ 00000060  3D 0001869F			cmp eax,99999
+ 00000065  7F 09			jg cannotRep
+ 00000067  3D FFFE7961			cmp eax,-99999
+ 0000006C  7C 02			jl cannotRep
+ 0000006E  EB 11			jmp canRep
+ 00000070				cannotRep:
+ 00000070  BA 00000096 R			mov edx, OFFSET isNot5DigRepMsg
+ 00000075  E8 00000000 E			call WriteString
+ 0000007A  E8 00000000 E			call CRLF
+ 0000007F  EB 0F			jmp endIteration
+ 00000081				canRep:
+ 00000081  BA 00000062 R			mov edx, OFFSET is5DigRepMsg
+ 00000086  E8 00000000 E			call WriteString
+ 0000008B  E8 00000000 E			call CRLF
+
+ 00000090			endIteration:	
+ 00000090  E9 FFFFFF6B		jmp lp1							;start over
+					
+ 00000095			endlp1:
+				exit
+ 0000009C			main ENDP
+				END main

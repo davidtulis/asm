@@ -1,0 +1,213 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/03/14 22:02:36
+sort.asm						     Page 1 - 1
+
+
+				;David Tulis bqb428
+				;CPEN 3710 lab 7 and lab 8
+				;Due 11/4/14
+
+				;This code will take the two arrays defined below and sort them in ascending order
+				;using the selection sort algorithm. They will be sorted in place, 
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+ 00000000			.data
+ 00000000 0C0D 0003 FFAA	array1 SWORD 0C0Dh, 0003h, 0FFAAh, 0F70h, 0000h, 0E222h, 0ABCDh, 0123h
+	   0F70 0000 E222
+	   ABCD 0123
+				;			 3085	0003   -86     3952       0  -7646   -21555   291
+
+				;sorted:     -21555, -7646, -86,    0,    3,    291,   3085, 3952
+				;            0ABCDh  0E222h 0FFAAh  0000  0003  0123h  0C0Dh 0F70h
+ 00000010 61A8 024F EC01	array2 SWORD 61A8h, 024Fh, 0EC01h, 0FAEEh, 2C03h, 8472h, 63AAh, 0CD45h, 2222h, 61B1h, 7A4Eh, 8100h, 0FDB2h, 6543h, 0FFFFh
+	   FAEE 2C03 8472
+	   63AA CD45 2222
+	   61B1 7A4E 8100
+	   FDB2 6543 FFFF
+ 0000002E 0000			array1Largest SWORD ?
+ 00000030 0000			array2Largest SWORD ?
+ 00000032 61 72 72 61 79	array1name BYTE "array1: ",0
+	   31 3A 20 00
+ 0000003B 61 72 72 61 79	array2name BYTE "array2: ",0
+	   32 3A 20 00
+ 00000044 6C 61 72 67 65	largestString BYTE "largest element of ",0
+	   73 74 20 65 6C
+	   65 6D 65 6E 74
+	   20 6F 66 20 00
+ 00000058 53 4F 52 54 49	sortingString BYTE "SORTING ",0
+	   4E 47 20 00
+
+ 00000000			.code
+ 00000000			main proc
+
+				;print array1
+ 00000000  BA 00000032 R	mov edx, offset array1name
+ 00000005  E8 00000000 E	call WriteString
+ 0000000A  BE 00000000 R	mov esi, offset array1
+ 0000000F  B9 00000008		mov ecx, lengthof array1
+ 00000014  BB 00000002		mov ebx, type array2
+ 00000019  E8 00000000 E	call dumpmem
+ 0000001E  E8 00000000 E	call crlf
+
+				;print array2
+ 00000023  BA 0000003B R	mov edx, offset array2name
+ 00000028  E8 00000000 E	call WriteString
+ 0000002D  BE 00000010 R	mov esi, offset array2
+ 00000032  B9 0000000F		mov ecx, lengthof array2
+ 00000037  BB 00000002		mov ebx, type array2
+ 0000003C  E8 00000000 E	call dumpmem
+ 00000041  E8 00000000 E	call crlf
+
+				;print "sorting"
+ 00000046  BA 00000058 R	mov edx, offset sortingString
+ 0000004B  E8 00000000 E	call WriteString
+ 00000050  BA 00000032 R	mov edx, offset array1Name
+ 00000055  E8 00000000 E	call WriteString
+ 0000005A  E8 00000000 E	call crlf
+
+				;call sort on first array
+ 0000005F  BF 00000000 R	mov edi, offset array1
+ 00000064  B9 00000008		mov ecx, lengthof array1
+				;parameters: edi (starting location of the array), ecx (size of array)
+				;returns: ax (largest element)
+ 00000069  E8 00000100		call sort
+
+				;print array1
+ 0000006E  BA 00000032 R	mov edx, offset array1name
+ 00000073  E8 00000000 E	call WriteString
+ 00000078  BE 00000000 R	mov esi, offset array1
+ 0000007D  B9 00000008		mov ecx, lengthof array1
+ 00000082  BB 00000002		mov ebx, type array2
+ 00000087  E8 00000000 E	call dumpmem
+ 0000008C  E8 00000000 E	call crlf
+
+				;print array2
+ 00000091  BA 0000003B R	mov edx, offset array2name
+ 00000096  E8 00000000 E	call WriteString
+ 0000009B  BE 00000010 R	mov esi, offset array2
+ 000000A0  B9 0000000F		mov ecx, lengthof array2
+ 000000A5  BB 00000002		mov ebx, type array2
+ 000000AA  E8 00000000 E	call dumpmem
+ 000000AF  E8 00000000 E	call crlf
+
+				;print largest of first array
+ 000000B4  BA 00000044 R	mov edx, offset largestString
+ 000000B9  E8 00000000 E	call WriteString
+ 000000BE  BA 00000032 R	mov edx, offset array1name
+ 000000C3  E8 00000000 E	call WriteString
+ 000000C8  66| 99		cwd							;ax has the largest value, so we clear up the upper part of eax
+ 000000CA  E8 00000000 E	call WriteHex
+ 000000CF  E8 00000000 E	call crlf
+
+				;print "sorting"
+ 000000D4  BA 00000058 R	mov edx, offset sortingString
+ 000000D9  E8 00000000 E	call WriteString
+ 000000DE  BA 0000003B R	mov edx, offset array2Name
+ 000000E3  E8 00000000 E	call WriteString
+ 000000E8  E8 00000000 E	call crlf
+
+				;second call
+ 000000ED  BF 00000010 R	mov edi, offset array2
+ 000000F2  B9 0000000F		mov ecx, lengthof array2
+				;parameters: edi (starting location of the array), ecx (size of array)
+				;returns: ax (largest element)
+ 000000F7  E8 00000072		call sort
+
+				;print array1
+ 000000FC  BA 00000032 R	mov edx, offset array1name
+ 00000101  E8 00000000 E	call WriteString
+ 00000106  BE 00000000 R	mov esi, offset array1
+ 0000010B  B9 00000008		mov ecx, lengthof array1
+ 00000110  BB 00000002		mov ebx, type array2
+ 00000115  E8 00000000 E	call dumpmem
+ 0000011A  E8 00000000 E	call crlf
+
+				;print array2
+ 0000011F  BA 0000003B R	mov edx, offset array2name
+ 00000124  E8 00000000 E	call WriteString
+ 00000129  BE 00000010 R	mov esi, offset array2
+ 0000012E  B9 0000000F		mov ecx, lengthof array2
+ 00000133  BB 00000002		mov ebx, type array2
+ 00000138  E8 00000000 E	call dumpmem
+ 0000013D  E8 00000000 E	call crlf
+
+				;print largest of second array
+ 00000142  BA 00000044 R	mov edx, offset largestString
+ 00000147  E8 00000000 E	call WriteString
+ 0000014C  BA 0000003B R	mov edx, offset array2name
+ 00000151  E8 00000000 E	call WriteString
+ 00000156  BF 00000030 R	mov edi, offset array2Largest
+ 0000015B  66| 99		cwd							;ax has the largest value, so we clear up the upper part of eax
+ 0000015D  E8 00000000 E	call WriteHex
+ 00000162  E8 00000000 E	call crlf
+
+				exit
+ 0000016E			main ENDP
+
+
+				;parameters: edi (starting location of the array), ecx (size of array)
+				;returns: ax (largest element)
+ 0000016E			sort proc
+ 0000016E  8B D1		mov edx, ecx
+ 00000170			loop_i: 
+					;we need this compare and jump to fix an off by 1 error. Since the loop checks if ecx is 0, 
+					;before continuing, the last loop will have ecx as 0. When we decrement ecx inside the loop, 
+					;it becomes FFFFFFFFh, which we just can't have. The last element will already be in place before
+					;the last iteration
+ 00000170  83 F9 01			cmp ecx, 1			
+ 00000173  74 41			je finished
+ 00000175  52				push edx
+
+ 00000176  8B C2			mov eax, edx		;eax is our pointer that looks at the elements
+ 00000178  03 C2			add eax, edx		;we have dwords in memory, so the size is 2*n
+ 0000017A  2B C1			sub eax, ecx		;we initialize it to: 2*size of array-2*current loop count, ecx
+ 0000017C  2B C1			sub eax, ecx		;since we have dwords in memory, we will have 2*n-2*ecx
+					
+ 0000017E  8B DA			mov ebx, edx		;ebx contains a pointer to the smallest element
+ 00000180  03 DA			add ebx, edx		
+ 00000182  2B D9			sub ebx, ecx		;we initialize it to: 2*size of array-2*current loop count, ecx
+ 00000184  2B D9			sub ebx, ecx
+					
+ 00000186  83 C0 02			add eax, 2			;increment our pointer to look at the next element
+ 00000189  51				push ecx			;save loop_i counter
+ 0000018A  49				dec ecx				;decrement the counter, since we already have two elements loaded in
+ 0000018B				loop_j:				;inner loop for finding the smallest element
+ 0000018B  66| 8B 2C 38				mov bp, [edi+eax]	;the next value in the array
+ 0000018F  66| 39 2C 3B				cmp [edi+ebx], bp	;the smallest value
+ 00000193  7C 02				jl notSmaller		;the element is not smaller, so we skip the update
+ 00000195  8B D8				mov ebx, eax		;we have found a new smallest element! put it in ebx
+ 00000197					notSmaller: 
+ 00000197  83 C0 02				add eax, 2			;go to the next element
+ 0000019A  E2 EF			loop loop_j				
+ 0000019C  59				pop ecx					;restore loop_i counter
+ 0000019D  5A				pop edx					;restore size of the array
+					;code to swap
+ 0000019E  56				push esi
+					
+ 0000019F  8B C2			mov eax, edx
+ 000001A1  03 C2			add eax, edx		;2*size of array
+ 000001A3  2B C1			sub eax, ecx		;2*loop interation count
+ 000001A5  2B C1			sub eax, ecx		;the element at: 2*size of array-2*loop iteration
+					
+ 000001A7  66| 8B 34 38			mov si, [edi+eax]	;the first element of the unsorted section in si
+ 000001AB  66| 87 34 3B			xchg si, [edi+ebx]	;exchange the smallest element with the si register
+ 000001AF  66| 89 34 38			mov [edi+eax], si	;put the si register in the beginning of the unsorted section
+					
+ 000001B3  5E				pop esi
+
+ 000001B4  E2 BA		loop loop_i	
+ 000001B6				finished:
+ 000001B6  03 D2			add edx, edx		;since we have words, the size in memory is 2*edx
+ 000001B8  83 EA 02			sub edx, 2			;move it back to the last element
+ 000001BB  66| 8B 04 3A			mov ax, [edi+edx]	;last element is the largest into ax
+ 000001BF  C3			ret	
+ 000001C0			sort endp
+				END main

@@ -1,0 +1,11 @@
+PGM -> STMTS $
+STMTS ->  STMT Q
+Q -> '\n' STMT Q | e
+STMT -> ASTMT | RSTMT | WSTMT
+ASTMT -> VAR = EXP
+EXP -> DIG | VAR | OP EXP EXP
+OP -> + | - | * | /
+RSTMT -> R VAR
+WSTMT -> W VAR
+VAR -> a | b | . . . | z
+DIG -> 0 | 1 | . . . | 9

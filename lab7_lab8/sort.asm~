@@ -1,0 +1,162 @@
+;David Tulis bqb428
+;CPEN 3710 lab 7 and lab 8
+;Due 11/4/14
+
+;This code will take the two arrays defined below and sort them in ascending order
+;using the selection sort algorithm. They will be sorted in place, 
+
+INCLUDE Irvine32.inc
+.data
+array1 SWORD 0C0Dh, 0003h, 0FFAAh, 0F70h, 0000h, 0E222h, 0ABCDh, 0123h
+array2 SWORD 61A8h, 024Fh, 0EC01h, 0FAEEh, 2C03h, 8472h, 63AAh, 0CD45h, 2222h, 61B1h, 7A4Eh, 8100h, 0FDB2h, 6543h, 0FFFFh
+array1Largest SWORD ?
+array2Largest SWORD ?
+array1name BYTE "array1: ",0
+array2name BYTE "array2: ",0
+largestString BYTE "largest element of ",0
+
+.code
+main proc
+mov edi, offset array1			;arg1: memory offset of array1
+mov esi, offset array2			;arg1: memory offset of array2
+
+mov eax, lengthof array1		;arg2: size of array1
+
+;print array1
+mov edx, offset array1name
+call WriteString
+push esi
+mov esi, offset array1
+mov ecx, lengthof array1
+mov ebx, type array2
+call dumpmem
+pop esi
+call crlf
+
+;print array2
+push esi
+mov esi, offset array2
+mov ecx, lengthof array2
+mov ebx, type array2
+call dumpmem
+pop esi
+call crlf
+
+;parameters: edi (starting location of the array), eax (size of array)
+;returns: eax (largest element)
+call sort
+mov array1Largest, eax			;move the largest element of array1 into memory
+
+;print largest of array1
+mov edx, offset largestString
+call writestring
+pop esi
+mov esi, offset array1Largest
+mov ecx, lengthof array1Largest
+mov ebx, type array1Largest
+call dumpmem
+pop esi
+call crlf
+
+;end of part 1
+
+;print array1
+mov edx, offset array1name
+call WriteString
+push esi
+mov esi, offset array1
+mov ecx, lengthof array1
+mov ebx, type array2
+call dumpmem
+pop esi
+
+;print array2
+push esi
+mov esi, offset array2
+mov ecx, lengthof array2
+mov ebx, type array2
+call dumpmem
+pop esi
+
+;parameters: edi (starting location of the array), eax (size of array)
+;returns: eax (largest element)
+call sort
+
+
+;end of part 2
+
+mov edi, offset array2
+mov eax, lengthof array2		;arg2
+
+;parameters: edi (starting location of the array), eax (size of array)
+;returns: eax (largest element)
+call sort
+mov array2Largest, eax			;move the largest element of array2 into memory
+
+mov edi, offset array1			;edi has array1, esi has array2
+;print array1
+mov edx, offset array1name
+call WriteString
+mov esi, offset array1
+mov ecx, lengthof array1
+mov ebx, type array2
+call dumpmem
+
+;print array2
+mov edx, offset array2name
+call WriteString
+mov esi, offset array2
+mov ecx, lengthof array2
+mov ebx, type array2
+call dumpmem
+
+;print largest of array2
+mov edx, offset largestString
+call writestring
+mov esi, offset array2Largest
+mov ecx, lengthof array2Largest
+mov ebx, type array2Largest
+call dumpmem
+call crlf
+
+exit
+main ENDP
+
+
+;parameters: edi (starting location of the array), eax (size of array)
+;returns: eax (largest element)
+sort proc uses eax edi
+;eax: i
+;ebx: k, the location of the smallest
+;edx: j
+;esi: pointer
+
+;ecx will be reserved
+
+;set up the stack frame
+push ebp				;save caller's base pointer
+mov ebp, esp				;stack contents
+					;
+					;ebp +0
+					;ret +4
+					;esi +8
+					;eax +12
+
+mov ecx, n				;set loop counter to the number of elements
+mov esi, edi				;copy of our pointer
+loop_i: 
+	mov ebx, [esi]			;set k to the first value
+	add esi, 2			;increment pointer
+	mov edx, eax			;set j=i-1
+	dec edx
+	push ecx			;save loop counter
+	push eax			;save
+	push ebx			;save
+	mov ecx, edx
+	loop_j:
+		mov eax, [edi+2*ebx]
+		mov ebx, [edi+2*
+		;compare the value at k to the value at esi
+
+subproc endp
+END main

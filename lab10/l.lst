@@ -1,0 +1,778 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/16/14 22:03:03
+l.asm							     Page 1 - 1
+
+
+				;David Tulis
+				;CPEN3710 lab 10
+				;Due 11/18/14
+
+				;this program will simulate a lottery drawing.
+				;a structure will be defined, with fields of 5 white balls and 1 red balls
+				;values of the white ball are 1-59
+				;values of the red ball are 1-35
+				;one struct will be initialized with random values
+				;the user will than input 5 white values and 1 red value, to be stored in another struct
+				;we will then start matching the balls, and match the number of matches
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+
+				;struct to represent a lottery
+				;can hold 5 white balls and 1 red ball
+ 00000006			lottery STRUCT
+ 00000000  00				wBall1 BYTE ?
+ 00000001  00				wBall2 BYTE ?
+ 00000002  00				wBall3 BYTE ?
+ 00000003  00				wBall4 BYTE ?
+ 00000004  00				wBall5 BYTE ?
+ 00000005  00				rBall1 BYTE ?
+				lottery ENDS
+
+				;macro to print text to the console
+				;parameters: num (the string to write)
+				mWriteString macro buffer:REQ
+					push edx					;save edx register
+					mov edx, offset buffer		;;move the string to edx
+					call writestring			;write the string in edsx
+					pop edx						;restore edx register
+				endm
+
+				;macro to print an 8 bit value to the console\
+				;parameters: num (the number to write)
+				mPrint8 macro num
+					push eax					;save eax
+					xor eax, eax				;clear out eax
+					mov al, num					;;move the 8 bit number to al
+					call writedec				;write the value to the screen
+					mWriteString space			;;write a space after
+					pop eax						;restore eax
+				endm
+
+				;macro to print a 32 bit value to the screen
+				;parameters: num (the value to print)
+				mPrint32 macro num
+					push eax					;save eax
+					mov eax, num				;;mov the number to eax
+					call writedec				;print the number
+					pop eax						;restore eax
+				endm
+
+				;macro will generate a single random value between 1 and the number we pass in
+				;parameters: num (num-1 will be the largest possible number generated)
+				;returns: eax (a random integer 1 through(num-1)
+				mRandNum macro num
+					local lp0				;local variable
+					lp0:
+						mov eax, num		;;mov our number to the eax register
+						call RandomRange	;generate random number 0 through (num-1)
+						cmp eax, 0			;see if the number was 0
+					je lp0					;;there is no 0 ball, so if 0 is picked, we pick again
+				endm
+
+				;macro to print the prize strings
+				;parameters: 	whites 	(the number of correct white balls)
+				;				reds	(the number of correct red balls)
+				;				money	(how much money you win)
+				mPrintPrize macro whites, reds, money
+					mWriteString match1String
+					mPrint8 whites
+					mWriteString match2String
+					mPrint8 reds
+					mWriteString match3String
+					mPrint32 money
+				endm
+
+ 00000000			.data
+
+ 00000000 00 00 00 00 00	drawing lottery <>				;struct for the randomly generate numbers
+	   00
+ 00000006 00 00 00 00 00	userPicks lottery <>			;struct for the numbers the user picks
+	   00
+
+				;strings to print out status messages are stored here
+ 0000000C 50 6F 77 65 72	drawingResultsString BYTE "Powerball drawing results: White balls ",0
+	   62 61 6C 6C 20
+	   64 72 61 77 69
+	   6E 67 20 72 65
+	   73 75 6C 74 73
+	   3A 20 57 68 69
+	   74 65 20 62 61
+	   6C 6C 73 20 00
+ 00000034 20 00			space BYTE " ",0
+ 00000036 2E 2E 2E 20 52	redBallString BYTE "... Red ball ",0
+	   65 64 20 62 61
+	   6C 6C 20 00
+ 00000044 50 6C 65 61 73	pleaseEnterString BYTE "Please enter your ",0
+	   65 20 65 6E 74
+	   65 72 20 79 6F
+	   75 72 20 00
+ 00000057 66 69 72 73 74	firstString BYTE "first white number: ",0
+	   20 77 68 69 74
+	   65 20 6E 75 6D
+	   62 65 72 3A 20
+	   00
+ 0000006C 73 65 63 6F 6E	secondString BYTE "second white number: ",0
+	   64 20 77 68 69
+	   74 65 20 6E 75
+	   6D 62 65 72 3A
+	   20 00
+ 00000082 74 68 69 72 64	thirdString BYTE "third white number: ",0
+	   20 77 68 69 74
+	   65 20 6E 75 6D
+	   62 65 72 3A 20
+	   00
+ 00000097 66 6F 75 72 74	fourthString BYTE "fourth white number: ",0
+	   68 20 77 68 69
+	   74 65 20 6E 75
+	   6D 62 65 72 3A
+	   20 00
+ 000000AD 66 69 66 74 68	fifthString BYTE "fifth white number: ",0
+	   20 77 68 69 74
+	   65 20 6E 75 6D
+	   62 65 72 3A 20
+	   00
+ 000000C2 72 65 64 20 6E	redString BYTE "red number: ",0
+	   75 6D 62 65 72
+	   3A 20 00
+ 000000CF 6E 75 6D 62 65	numberString BYTE "number: ",0
+	   72 3A 20 00
+ 000000D8 59 6F 75 20 68	match1String BYTE "You have matched ",0
+	   61 76 65 20 6D
+	   61 74 63 68 65
+	   64 20 00
+ 000000EA 77 68 69 74 65	match2String BYTE "white balls and ",0
+	   20 62 61 6C 6C
+	   73 20 61 6E 64
+	   20 00
+ 000000FB 72 65 64 20 62	match3String BYTE "red balls. You have won $",0
+	   61 6C 6C 73 2E
+	   20 59 6F 75 20
+	   68 61 76 65 20
+	   77 6F 6E 20 24
+	   00
+ 00000115 49 6E 76 61 6C	invalidString BYTE "Invalid input. Please try again.",0
+	   69 64 20 69 6E
+	   70 75 74 2E 20
+	   50 6C 65 61 73
+	   65 20 74 72 79
+	   20 61 67 61 69
+	   6E 2E 00
+ 00000136 44 75 70 6C 69	dupString BYTE "Duplicate input. Please try again.",0
+	   63 61 74 65 20
+	   69 6E 70 75 74
+	   2E 20 50 6C 65
+	   61 73 65 20 74
+	   72 79 20 61 67
+	   61 69 6E 2E 00
+ 00000159 59 6F 75 20 6D	jackpotString BYTE "You matched all the balls! You have won the jackpot!",0
+	   61 74 63 68 65
+	   64 20 61 6C 6C
+	   20 74 68 65 20
+	   62 61 6C 6C 73
+	   21 20 59 6F 75
+	   20 68 61 76 65
+	   20 77 6F 6E 20
+	   74 68 65 20 6A
+	   61 63 6B 70 6F
+	   74 21 00
+ 0000018E 59 6F 75 20 64	noPrizeString BYTE "You did not win a prize. Try again next time!",0
+	   69 64 20 6E 6F
+	   74 20 77 69 6E
+	   20 61 20 70 72
+	   69 7A 65 2E 20
+	   54 72 79 20 61
+	   67 61 69 6E 20
+	   6E 65 78 74 20
+	   74 69 6D 65 21
+	   00
+
+ 00000000			.code
+ 00000000			main PROC
+
+ 00000000  E8 00000109		call generateNumbers			;generate our drawing and store in the drawing struct
+
+												;print the generated results to the console
+				mWriteString drawingResultsString
+ 00000005  52		     1		push edx					
+ 00000006  BA 0000000C R     1		mov edx, offset drawingResultsString		
+ 0000000B  E8 00000000 E     1		call writestring			
+ 00000010  5A		     1		pop edx						
+				mprint8 drawing.wBall1
+ 00000011  50		     1		push eax					
+ 00000012  33 C0	     1		xor eax, eax				
+ 00000014  A0 00000000 R     1		mov al, drawing.wBall1					
+ 00000019  E8 00000000 E     1		call writedec				
+ 0000001E  52		     2		push edx					
+ 0000001F  BA 00000034 R     2		mov edx, offset space		
+ 00000024  E8 00000000 E     2		call writestring			
+ 00000029  5A		     2		pop edx						
+ 0000002A  58		     1		pop eax						
+				mprint8 drawing.wBall2
+ 0000002B  50		     1		push eax					
+ 0000002C  33 C0	     1		xor eax, eax				
+ 0000002E  A0 00000001 R     1		mov al, drawing.wBall2					
+ 00000033  E8 00000000 E     1		call writedec				
+ 00000038  52		     2		push edx					
+ 00000039  BA 00000034 R     2		mov edx, offset space		
+ 0000003E  E8 00000000 E     2		call writestring			
+ 00000043  5A		     2		pop edx						
+ 00000044  58		     1		pop eax						
+				mprint8 drawing.wBall3
+ 00000045  50		     1		push eax					
+ 00000046  33 C0	     1		xor eax, eax				
+ 00000048  A0 00000002 R     1		mov al, drawing.wBall3					
+ 0000004D  E8 00000000 E     1		call writedec				
+ 00000052  52		     2		push edx					
+ 00000053  BA 00000034 R     2		mov edx, offset space		
+ 00000058  E8 00000000 E     2		call writestring			
+ 0000005D  5A		     2		pop edx						
+ 0000005E  58		     1		pop eax						
+				mprint8 drawing.wBall4
+ 0000005F  50		     1		push eax					
+ 00000060  33 C0	     1		xor eax, eax				
+ 00000062  A0 00000003 R     1		mov al, drawing.wBall4					
+ 00000067  E8 00000000 E     1		call writedec				
+ 0000006C  52		     2		push edx					
+ 0000006D  BA 00000034 R     2		mov edx, offset space		
+ 00000072  E8 00000000 E     2		call writestring			
+ 00000077  5A		     2		pop edx						
+ 00000078  58		     1		pop eax						
+				mprint8 drawing.wBall5
+ 00000079  50		     1		push eax					
+ 0000007A  33 C0	     1		xor eax, eax				
+ 0000007C  A0 00000004 R     1		mov al, drawing.wBall5					
+ 00000081  E8 00000000 E     1		call writedec				
+ 00000086  52		     2		push edx					
+ 00000087  BA 00000034 R     2		mov edx, offset space		
+ 0000008C  E8 00000000 E     2		call writestring			
+ 00000091  5A		     2		pop edx						
+ 00000092  58		     1		pop eax						
+				mWriteString redBallString
+ 00000093  52		     1		push edx					
+ 00000094  BA 00000036 R     1		mov edx, offset redBallString		
+ 00000099  E8 00000000 E     1		call writestring			
+ 0000009E  5A		     1		pop edx						
+				mprint8 drawing.rBall1
+ 0000009F  50		     1		push eax					
+ 000000A0  33 C0	     1		xor eax, eax				
+ 000000A2  A0 00000005 R     1		mov al, drawing.rBall1					
+ 000000A7  E8 00000000 E     1		call writedec				
+ 000000AC  52		     2		push edx					
+ 000000AD  BA 00000034 R     2		mov edx, offset space		
+ 000000B2  E8 00000000 E     2		call writestring			
+ 000000B7  5A		     2		pop edx						
+ 000000B8  58		     1		pop eax						
+
+ 000000B9  E8 00000000 E	call crlf						;next line
+						
+
+ 000000BE  E8 00000119		call getUserNumbers				;get user input and store in the userPicks struct
+
+ 000000C3  66| 33 DB		xor bx, bx						;clear out bx register, because we will use it store the number of correct matches
+
+ 000000C6  A0 00000006 R	mov al, userPicks.wBall1		
+ 000000CB  E8 0000032F		call matchWhites 		;see if white ball 1 matches any drawn balls
+ 000000D0  A0 00000007 R	mov al, userPicks.wBall2
+ 000000D5  E8 00000325		call matchWhites 		;see if white ball 2 matches any drawn balls
+ 000000DA  A0 00000008 R	mov al, userPicks.wBall3
+ 000000DF  E8 0000031B		call matchWhites 		;see if white ball 3 matches any drawn balls
+ 000000E4  A0 00000009 R	mov al, userPicks.wBall4
+ 000000E9  E8 00000311		call matchWhites 		;see if white ball 4 matches any drawn balls
+ 000000EE  A0 0000000A R	mov al, userPicks.wBall5
+ 000000F3  E8 00000307		call matchWhites 		;see if white ball 5 matches any drawn balls
+										;bl contains the number of white balls matches
+ 000000F8  A0 0000000B R	mov al, userPicks.rBall1
+ 000000FD  E8 0000032A		call matchRed			;see if the red ball matches the drawn red ball
+										;bh contains the number of red balls matched
+										
+ 00000102  E8 00000330		call getPrize			;match the number of drawn balls, and print the prize
+
+				exit
+ 0000010E			main ENDP
+
+				;procedure to generate random numbers
+				;will not generate duplicate random numbers
+				;will make sure the random numbers are in the correct range (1-60 or 1-35)
+				;returns: alters the drawing struct
+ 0000010E			generateNumbers PROC
+ 0000010E  E8 00000000 E		call randomize				;get a random seed
+					mRandNum 60					;random number 1-59 in eax
+ 00000113		     1		??0000:
+ 00000113  B8 0000003C	     1			mov eax, 60		
+ 00000118  E8 00000000 E     1			call RandomRange	
+ 0000011D  83 F8 00	     1			cmp eax, 0			
+ 00000120  74 F1	     1		je ??0000					
+ 00000122  A2 00000000 R		mov drawing.wBall1, al		;store the first ball
+
+					
+ 00000127				tryAgain2:
+						mRandNum 60				;random number 1-59 in eax
+ 00000127		     1		??0001:
+ 00000127  B8 0000003C	     1			mov eax, 60		
+ 0000012C  E8 00000000 E     1			call RandomRange	
+ 00000131  83 F8 00	     1			cmp eax, 0			
+ 00000134  74 F1	     1		je ??0001					
+ 00000136  38 05 00000000 R			cmp drawing.wBall1, al	;is the generated number the same as ball 1?
+ 0000013C  74 E9			je tryAgain2				;if so, try again
+ 0000013E  A2 00000001 R		mov drawing.wBall2, al		;if not, store it
+					
+ 00000143				tryAgain3:
+						mRandNum 60				;random number 1-59 in eax
+ 00000143		     1		??0002:
+ 00000143  B8 0000003C	     1			mov eax, 60		
+ 00000148  E8 00000000 E     1			call RandomRange	
+ 0000014D  83 F8 00	     1			cmp eax, 0			
+ 00000150  74 F1	     1		je ??0002					
+ 00000152  38 05 00000000 R			cmp drawing.wBall1, al	;is the generated number the same as ball 1?
+ 00000158  74 E9			je tryAgain3				;if so, try again
+ 0000015A  38 05 00000001 R			cmp drawing.wBall2, al	;is the generated number the same as ball 2?
+ 00000160  74 E1			je tryAgain3				;if so, try again
+ 00000162  A2 00000002 R		mov drawing.wBall3, al		;if not, store it
+					
+ 00000167				tryAgain4: 
+						mRandNum 60				;random number 1-59 in eax
+ 00000167		     1		??0003:
+ 00000167  B8 0000003C	     1			mov eax, 60		
+ 0000016C  E8 00000000 E     1			call RandomRange	
+ 00000171  83 F8 00	     1			cmp eax, 0			
+ 00000174  74 F1	     1		je ??0003					
+ 00000176  38 05 00000000 R			cmp drawing.wBall1, al	;is the generated number the same as ball 1?
+ 0000017C  74 E9			je tryAgain4				;if so, try again
+ 0000017E  38 05 00000001 R			cmp drawing.wBall2, al	;is the generated number the same as ball 2?
+ 00000184  74 E1			je tryAgain4				;if so, try again
+ 00000186  38 05 00000002 R			cmp drawing.wBall3, al	;is the generated number the same as ball 3?
+ 0000018C  74 D9			je tryAgain4				;if so, try again
+ 0000018E  A2 00000003 R		mov drawing.wBall4, al		;if not, store it
+					
+ 00000193				tryAgain5:
+						mRandNum 60				;random number 1-59 in eax
+ 00000193		     1		??0004:
+ 00000193  B8 0000003C	     1			mov eax, 60		
+ 00000198  E8 00000000 E     1			call RandomRange	
+ 0000019D  83 F8 00	     1			cmp eax, 0			
+ 000001A0  74 F1	     1		je ??0004					
+ 000001A2  38 05 00000000 R			cmp drawing.wBall1, al	;is the generated number the same as ball 1?
+ 000001A8  74 E9			je tryAgain5				;if so, try again
+ 000001AA  38 05 00000001 R			cmp drawing.wBall2, al	;is the generated number the same as ball 2?
+ 000001B0  74 E1			je tryAgain5				;if so, try again
+ 000001B2  38 05 00000002 R			cmp drawing.wBall3, al	;is the generated number the same as ball 3?
+ 000001B8  74 D9			je tryAgain5				;if so, try again
+ 000001BA  38 05 00000003 R			cmp drawing.wBall4, al	;is the generated number the same as ball 4?
+ 000001C0  74 D1			je tryAgain5				;if so, try again
+ 000001C2  A2 00000004 R		mov drawing.wBall5, al		;if not, store it
+					
+					mRandNum 36					;random number 1-35 in eax
+ 000001C7		     1		??0005:
+ 000001C7  B8 00000024	     1			mov eax, 36		
+ 000001CC  E8 00000000 E     1			call RandomRange	
+ 000001D1  83 F8 00	     1			cmp eax, 0			
+ 000001D4  74 F1	     1		je ??0005					
+ 000001D6  A2 00000005 R		mov drawing.rBall1, al		;store it in rBall1
+					
+ 000001DB  C3				ret							;return to caller
+ 000001DC			generateNumbers ENDP
+
+				;procedure to get user input
+				;will not accept numbers outside the given range(1-60 or 1-35)
+				;will not accept numbers that have already been chosen
+				;returns: fulls the userPicks struct with the user chosen values
+ 000001DC			getUserNumbers PROC
+ 000001DC				loop1: 
+					;ask user for white 1
+					mWriteString pleaseEnterString
+ 000001DC  52		     1		push edx					
+ 000001DD  BA 00000044 R     1		mov edx, offset pleaseEnterString		
+ 000001E2  E8 00000000 E     1		call writestring			
+ 000001E7  5A		     1		pop edx						
+					mWriteString firstString
+ 000001E8  52		     1		push edx					
+ 000001E9  BA 00000057 R     1		mov edx, offset firstString		
+ 000001EE  E8 00000000 E     1		call writestring			
+ 000001F3  5A		     1		pop edx						
+ 000001F4  E8 00000000 E		call readint
+					;validate white 1
+ 000001F9  83 F8 00			cmp eax, 0					;is it below a 1?
+ 000001FC  7E 0C			jle invalid1				;if so, invalid input
+ 000001FE  83 F8 3B			cmp eax, 59					;is above 59
+ 00000201  7F 07			jg invalid1					;if so, invalid input
+ 00000203  A2 00000006 R		mov userPicks.wBall1, al	;store it in the struct
+ 00000208  EB 13			jmp loop2					;move on to next ball
+ 0000020A				invalid1:					;print out invalid input
+					mWriteString invalidString
+ 0000020A  52		     1		push edx					
+ 0000020B  BA 00000115 R     1		mov edx, offset invalidString		
+ 00000210  E8 00000000 E     1		call writestring			
+ 00000215  5A		     1		pop edx						
+ 00000216  E8 00000000 E		call crlf
+ 0000021B  E2 BF			loop loop1					;ask for input again
+					
+					;white 2
+ 0000021D				loop2:
+					mWriteString pleaseEnterString
+ 0000021D  52		     1		push edx					
+ 0000021E  BA 00000044 R     1		mov edx, offset pleaseEnterString		
+ 00000223  E8 00000000 E     1		call writestring			
+ 00000228  5A		     1		pop edx						
+					mWriteString secondString
+ 00000229  52		     1		push edx					
+ 0000022A  BA 0000006C R     1		mov edx, offset secondString		
+ 0000022F  E8 00000000 E     1		call writestring			
+ 00000234  5A		     1		pop edx						
+ 00000235  E8 00000000 E		call readint
+					;validate white 2
+ 0000023A  83 F8 00			cmp eax, 0					;is it below a 1?
+ 0000023D  7E 27			jle invalid2				;if so, invalid input
+ 0000023F  83 F8 3B			cmp eax, 59					;is it above 59
+ 00000242  7F 22			jg invalid2					;if so, invalid input
+ 00000244  3A 05 00000006 R		cmp al, userPicks.wBall1	;is it the same as ball 1?
+ 0000024A  74 07			je dup2						;if so, ask for input again
+ 0000024C  A2 00000007 R		mov userPicks.wBall2, al	;if not, store it in the struct...
+ 00000251  EB 26			jmp loop3					;...and move on
+ 00000253				dup2:						;print out duplicate input
+					mWriteString dupString
+ 00000253  52		     1		push edx					
+ 00000254  BA 00000136 R     1		mov edx, offset dupString		
+ 00000259  E8 00000000 E     1		call writestring			
+ 0000025E  5A		     1		pop edx						
+ 0000025F  E8 00000000 E		call crlf
+ 00000264  E2 B7			loop loop2					;get input 2 again
+ 00000266				invalid2:					;print out invalid input
+					mWriteString invalidString
+ 00000266  52		     1		push edx					
+ 00000267  BA 00000115 R     1		mov edx, offset invalidString		
+ 0000026C  E8 00000000 E     1		call writestring			
+ 00000271  5A		     1		pop edx						
+ 00000272  E8 00000000 E		call crlf
+ 00000277  E2 A4			loop loop2					;get input 2 again
+						
+					;white 3
+ 00000279				loop3:
+					;ask the user to input a value
+					mWriteString pleaseEnterString
+ 00000279  52		     1		push edx					
+ 0000027A  BA 00000044 R     1		mov edx, offset pleaseEnterString		
+ 0000027F  E8 00000000 E     1		call writestring			
+ 00000284  5A		     1		pop edx						
+					mWriteString thirdString
+ 00000285  52		     1		push edx					
+ 00000286  BA 00000082 R     1		mov edx, offset thirdString		
+ 0000028B  E8 00000000 E     1		call writestring			
+ 00000290  5A		     1		pop edx						
+ 00000291  E8 00000000 E		call readint
+					;validate white 3
+ 00000296  83 F8 00			cmp eax, 0					;is it below a 1?
+ 00000299  7E 2F			jle invalid3				;if so, invalid input
+ 0000029B  83 F8 3B			cmp eax, 59					;is it above a 59?
+ 0000029E  7F 2A			jg invalid3					;if so, invalid input
+ 000002A0  3A 05 00000006 R		cmp al, userPicks.wBall1	;is it the same as ball 1?
+ 000002A6  74 0F			je dup3						;if so, duplicate entry
+ 000002A8  3A 05 00000007 R		cmp al, userPicks.wBall2	;is it the same as ball 2?
+ 000002AE  74 07			je dup3						;if so, duplicate entry
+ 000002B0  A2 00000008 R		mov userPicks.wBall3, al
+ 000002B5  EB 26			jmp loop4
+ 000002B7				dup3:						;print out duplicate input
+					mWriteString dupString
+ 000002B7  52		     1		push edx					
+ 000002B8  BA 00000136 R     1		mov edx, offset dupString		
+ 000002BD  E8 00000000 E     1		call writestring			
+ 000002C2  5A		     1		pop edx						
+ 000002C3  E8 00000000 E		call crlf
+ 000002C8  E2 AF			loop loop3					;get input 3 again
+ 000002CA				invalid3:					;print invald string
+					mWriteString invalidString
+ 000002CA  52		     1		push edx					
+ 000002CB  BA 00000115 R     1		mov edx, offset invalidString		
+ 000002D0  E8 00000000 E     1		call writestring			
+ 000002D5  5A		     1		pop edx						
+ 000002D6  E8 00000000 E		call crlf
+ 000002DB  E2 9C			loop loop3					;get input 3 again
+
+					;white 4
+ 000002DD				loop4:
+					mWriteString pleaseEnterString
+ 000002DD  52		     1		push edx					
+ 000002DE  BA 00000044 R     1		mov edx, offset pleaseEnterString		
+ 000002E3  E8 00000000 E     1		call writestring			
+ 000002E8  5A		     1		pop edx						
+					mWriteString fourthString
+ 000002E9  52		     1		push edx					
+ 000002EA  BA 00000097 R     1		mov edx, offset fourthString		
+ 000002EF  E8 00000000 E     1		call writestring			
+ 000002F4  5A		     1		pop edx						
+ 000002F5  E8 00000000 E		call readint
+					;validate white 4
+ 000002FA  83 F8 00			cmp eax, 0					;is it below 1?
+ 000002FD  7E 37			jle invalid4				;if so, invalid input
+ 000002FF  83 F8 3B			cmp eax, 59					;is it above 59?
+ 00000302  7F 32			jg invalid4					;if so, invalid input
+ 00000304  3A 05 00000006 R		cmp al, userPicks.wBall1	;is it the same as ball 1?
+ 0000030A  74 17			je dup4						;if so, duplicate entry
+ 0000030C  3A 05 00000007 R		cmp al, userPicks.wBall2	;is it the same as ball 2?
+ 00000312  74 0F			je dup4						;if so, duplicate entry
+ 00000314  3A 05 00000008 R		cmp al, userPicks.wBall3	;is it the same as ball 3?
+ 0000031A  74 07			je dup4						;if so, duplicate entry
+ 0000031C  A2 00000009 R		mov userPicks.wBall4, al	;if it passes validation, move to wBall4
+ 00000321  EB 26			jmp loop5					;move on to next input
+ 00000323				dup4: 						;print out duplicate input
+					mWriteString dupString
+ 00000323  52		     1		push edx					
+ 00000324  BA 00000136 R     1		mov edx, offset dupString		
+ 00000329  E8 00000000 E     1		call writestring			
+ 0000032E  5A		     1		pop edx						
+ 0000032F  E8 00000000 E		call crlf
+ 00000334  E2 A7			loop loop4					;get input 4 again
+ 00000336				invalid4:					;print out invalid string
+					mWriteString invalidString
+ 00000336  52		     1		push edx					
+ 00000337  BA 00000115 R     1		mov edx, offset invalidString		
+ 0000033C  E8 00000000 E     1		call writestring			
+ 00000341  5A		     1		pop edx						
+ 00000342  E8 00000000 E		call crlf
+ 00000347  E2 94			loop loop4					;get input 4 again
+					
+					;white 5
+ 00000349				loop5:
+					mWriteString pleaseEnterString
+ 00000349  52		     1		push edx					
+ 0000034A  BA 00000044 R     1		mov edx, offset pleaseEnterString		
+ 0000034F  E8 00000000 E     1		call writestring			
+ 00000354  5A		     1		pop edx						
+					mWriteString fifthString
+ 00000355  52		     1		push edx					
+ 00000356  BA 000000AD R     1		mov edx, offset fifthString		
+ 0000035B  E8 00000000 E     1		call writestring			
+ 00000360  5A		     1		pop edx						
+ 00000361  E8 00000000 E		call readint
+					;validate white 5
+ 00000366  83 F8 00			cmp eax, 0					;is it below 1?
+ 00000369  7E 3F			jle invalid5				;if so, invalid input
+ 0000036B  83 F8 3B			cmp eax, 59					;is it above 59?
+ 0000036E  7F 3A			jg invalid5					;if so, invalid input
+ 00000370  3A 05 00000006 R		cmp al, userPicks.wBall1	;compare white ball 1 to white ball 1
+ 00000376  74 1F			je dup5
+ 00000378  3A 05 00000007 R		cmp al, userPicks.wBall2	;compare white ball 2 to white ball 1
+ 0000037E  74 17			je dup5
+ 00000380  3A 05 00000008 R		cmp al, userPicks.wBall3	;compare white ball 3 to white ball 1
+ 00000386  74 0F			je dup5
+ 00000388  3A 05 00000009 R		cmp al, userPicks.wBall4	;compare white ball 4 to white ball 1
+ 0000038E  74 07			je dup5
+ 00000390  A2 0000000A R		mov userPicks.wBall5, al	;store white ball 5
+ 00000395  EB 26			jmp loop6
+ 00000397				dup5:
+					mWriteString dupString		;print out duplicate input
+ 00000397  52		     1		push edx					
+ 00000398  BA 00000136 R     1		mov edx, offset dupString		
+ 0000039D  E8 00000000 E     1		call writestring			
+ 000003A2  5A		     1		pop edx						
+ 000003A3  E8 00000000 E		call crlf
+ 000003A8  E2 9F			loop loop5					;get input 5 again
+ 000003AA				invalid5:					;print invalid input
+					mWriteString invalidString
+ 000003AA  52		     1		push edx					
+ 000003AB  BA 00000115 R     1		mov edx, offset invalidString		
+ 000003B0  E8 00000000 E     1		call writestring			
+ 000003B5  5A		     1		pop edx						
+ 000003B6  E8 00000000 E		call crlf
+ 000003BB  E2 8C			loop loop5					;get input 5 again
+					
+					;red ball
+ 000003BD				loop6:
+					mWriteString pleaseEnterString
+ 000003BD  52		     1		push edx					
+ 000003BE  BA 00000044 R     1		mov edx, offset pleaseEnterString		
+ 000003C3  E8 00000000 E     1		call writestring			
+ 000003C8  5A		     1		pop edx						
+					mWriteString redString
+ 000003C9  52		     1		push edx					
+ 000003CA  BA 000000C2 R     1		mov edx, offset redString		
+ 000003CF  E8 00000000 E     1		call writestring			
+ 000003D4  5A		     1		pop edx						
+ 000003D5  E8 00000000 E		call readint
+					;validate red ball
+ 000003DA  83 F8 00			cmp eax, 0					;is ball below 1?
+ 000003DD  7E 0C			jle invalid6
+ 000003DF  83 F8 23			cmp eax, 35					;is ball above 35?
+ 000003E2  7F 07			jg invalid6
+ 000003E4  A2 0000000B R		mov userPicks.rBall1, al	;store red ball
+ 000003E9  EB 13			jmp endUserInput			;finished gathering user input
+ 000003EB				invalid6:					;invalid input
+					mWriteString invalidString
+ 000003EB  52		     1		push edx					
+ 000003EC  BA 00000115 R     1		mov edx, offset invalidString		
+ 000003F1  E8 00000000 E     1		call writestring			
+ 000003F6  5A		     1		pop edx						
+ 000003F7  E8 00000000 E		call crlf
+ 000003FC  E2 BF			loop loop6					;as for iput again
+					
+ 000003FE				endUserInput:				;finished gathering input
+ 000003FE  C3				ret
+ 000003FF			getUserNumbers ENDP
+
+				;this procedure will take a single user chosen white ball, and compare it to all the rng white balls
+				;it will keep track of the total number of white matches so far
+				;parameters: al (number we are checking)
+				;returns: bl (the total number of white matches)
+				;al will have the user white ball
+ 000003FF			matchWhites PROC
+ 000003FF  38 05 00000000 R		cmp drawing.wBall1, al		;is it the same as rng white ball 1?
+ 00000405  74 22			je found
+ 00000407  38 05 00000001 R		cmp drawing.wBall2, al		;is it the same as rng white ball 2?
+ 0000040D  74 1A			je found
+ 0000040F  38 05 00000002 R		cmp drawing.wBall3, al		;is it the same as rng white ball 3?
+ 00000415  74 12			je found
+ 00000417  38 05 00000003 R		cmp drawing.wBall4, al		;is it the same as rng white ball 4?
+ 0000041D  74 0A			je found
+ 0000041F  38 05 00000004 R		cmp drawing.wBall5, al		;is it the same as rng white ball 5?
+ 00000425  74 02			je found
+ 00000427  EB 02			jmp endMatchWhites			;none found, so we dont increment bl
+ 00000429				found:						;a match was found, so we increment bl...
+ 00000429  FE C3			inc bl
+ 0000042B				endMatchWhites:				;...and qui the procedure
+ 0000042B  C3				ret
+ 0000042C			matchWhites ENDP
+
+				;this procedure looks at the user chosen red ball, and will determine if it matches the rng red ball
+				;parameters: al (the value of the user-chosen red ball)
+				;returns: bh (the number of red matches; 0 if none, 1 if match)
+ 0000042C			matchRed PROC
+ 0000042C  38 05 00000005 R		cmp drawing.rBall1, al		;does the user input match the rng value for the red ball?
+ 00000432  75 02			jne endMatchReds			;if not, quit the procedure
+ 00000434  B7 01			mov bh, 1					;if so, put a 1 in bh
+ 00000436				endMatchReds:
+ 00000436  C3				ret							;quit procedure
+ 00000437			matchRed ENDP
+
+				;procedure to determine what prize the user wins
+				;looks at the number of matches white/red balls, and prints the prize accordingly
+				;parameters: bl (number of matched whites), bh (the number of matched reds)
+				;returns: nothing (prints all statements for you)
+ 00000437			getPrize PROC
+
+ 00000437  80 FB 05			cmp bl, 5		;are there 5 white balls matched?
+ 0000043A  74 1E			je whites5
+					
+ 0000043C  80 FB 04			cmp bl, 4		;are there 4 white balls matched?
+ 0000043F  74 25			je whites4
+					
+ 00000441  80 FB 03			cmp bl, 3		;are there 3 white balls matched?
+ 00000444  74 2C			je whites3
+					
+ 00000446  80 FB 02			cmp bl, 2		;are there 2 white balls matched?
+ 00000449  74 33			je whites2
+					
+ 0000044B  80 FB 01			cmp bl, 1		;are there 1 white balls matched?
+ 0000044E  74 3E			je whites1
+					
+ 00000450  80 FB 00			cmp bl, 0		;are there no white balls matched?
+ 00000453  74 49			je whites0
+					
+ 00000455  E9 000000C7			jmp noPrize		;if we reach this point, there were none matched, so we print "no prize"
+					
+ 0000045A				whites5:				;precondition: 5 white balls matched
+ 0000045A  80 FF 01				cmp bh, 1			;was there a red ball match?
+ 0000045D  74 4B				je jackPot			;if so, print the jackpot
+ 0000045F  B8 000F4240				mov eax, 1000000	;if not, print the next prize
+ 00000464  EB 5F				jmp yesPrize
+					
+ 00000466				whites4:				;precondition: 4 white balls matched
+ 00000466  80 FF 01				cmp bh, 1			;was there a red ball match?
+ 00000469  74 4C				je whites4reds1		;if so, print 4 whites 1 red
+ 0000046B  B8 00000064				mov eax, 100		;if not, print 4 whites
+ 00000470  EB 53				jmp yesPrize
+						
+ 00000472				whites3:				;precondition: 3 whites matched
+ 00000472  80 FF 01				cmp bh, 1			;was there a red ball match?
+ 00000475  74 47				je whites3reds1		;if so, print 3 whites 1 red
+ 00000477  B8 00000007				mov eax, 7			;if not, print 3 whites
+ 0000047C  EB 47				jmp yesPrize
+					
+ 0000047E				whites2:				;precondition: 2 whites matched
+ 0000047E  80 FF 01				cmp bh, 1			;was there a red ball match?
+ 00000481  0F 85 0000009A			jne noPrize			;if not, there was no prize
+ 00000487  B8 00000007				mov eax, 7			;if so, there was a prize. print it
+ 0000048C  EB 37				jmp yesPrize
+						
+ 0000048E				whites1:				;precondition: 1 white matched
+ 0000048E  80 FF 01				cmp bh, 1			;was there a red ball matched?
+ 00000491  0F 85 0000008A			jne noPrize			;if not, no prize
+ 00000497  B8 00000004				mov eax, 4			;if so, print the prize
+ 0000049C  EB 27				jmp yesPrize
+						
+ 0000049E				whites0:				;precodition: no whites matched
+ 0000049E  80 FF 01				cmp bh, 1			;was there a red ball match?
+ 000004A1  75 7E				jne noPrize			;if not, no prize
+ 000004A3  B8 00000004				mov eax, 4			;if so, print prize
+ 000004A8  EB 1B				jmp yesPrize
+						
+ 000004AA				jackpot: 				;prints the jackpot, and returns
+						mWriteString jackpotString
+ 000004AA  52		     1		push edx					
+ 000004AB  BA 00000159 R     1		mov edx, offset jackpotString		
+ 000004B0  E8 00000000 E     1		call writestring			
+ 000004B5  5A		     1		pop edx						
+ 000004B6  C3					ret
+					
+ 000004B7				whites4reds1:			;prints match for 4 whites 1 red
+ 000004B7  B8 00002710				mov eax, 10000
+ 000004BC  EB 07				jmp yesPrize
+					
+ 000004BE				whites3reds1:			;prints match for 3 whites 1 red
+ 000004BE  B8 00000064				mov eax, 100
+ 000004C3  EB 00				jmp yesPrize
+					
+ 000004C5				yesPrize:				;prints the prize string, and exits
+						mPrintPrize bl, bh, eax
+ 000004C5  52		     2		push edx					
+ 000004C6  BA 000000D8 R     2		mov edx, offset match1String		
+ 000004CB  E8 00000000 E     2		call writestring			
+ 000004D0  5A		     2		pop edx						
+ 000004D1  50		     2		push eax					
+ 000004D2  33 C0	     2		xor eax, eax				
+ 000004D4  8A C3	     2		mov al, bl					
+ 000004D6  E8 00000000 E     2		call writedec				
+ 000004DB  52		     3		push edx					
+ 000004DC  BA 00000034 R     3		mov edx, offset space		
+ 000004E1  E8 00000000 E     3		call writestring			
+ 000004E6  5A		     3		pop edx						
+ 000004E7  58		     2		pop eax						
+ 000004E8  52		     2		push edx					
+ 000004E9  BA 000000EA R     2		mov edx, offset match2String		
+ 000004EE  E8 00000000 E     2		call writestring			
+ 000004F3  5A		     2		pop edx						
+ 000004F4  50		     2		push eax					
+ 000004F5  33 C0	     2		xor eax, eax				
+ 000004F7  8A C7	     2		mov al, bh					
+ 000004F9  E8 00000000 E     2		call writedec				
+ 000004FE  52		     3		push edx					
+ 000004FF  BA 00000034 R     3		mov edx, offset space		
+ 00000504  E8 00000000 E     3		call writestring			
+ 00000509  5A		     3		pop edx						
+ 0000050A  58		     2		pop eax						
+ 0000050B  52		     2		push edx					
+ 0000050C  BA 000000FB R     2		mov edx, offset match3String		
+ 00000511  E8 00000000 E     2		call writestring			
+ 00000516  5A		     2		pop edx						
+ 00000517  50		     2		push eax					
+ 00000518  8B C0	     2		mov eax, eax				
+ 0000051A  E8 00000000 E     2		call writedec				
+ 0000051F  58		     2		pop eax						
+ 00000520  C3					ret
+					
+ 00000521				noPrize:				;prints the no prize string, and exits
+						mWriteString noPrizeString
+ 00000521  52		     1		push edx					
+ 00000522  BA 0000018E R     1		mov edx, offset noPrizeString		
+ 00000527  E8 00000000 E     1		call writestring			
+ 0000052C  5A		     1		pop edx						
+ 0000052D  C3					ret
+ 0000052E			getPrize ENDP
+
+				END main

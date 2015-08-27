@@ -1,0 +1,382 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/11/14 14:54:50
+prime.asm						     Page 1 - 1
+
+
+				;David Tulis bqb428
+				;CPEN3710 lab 9
+				;Due 11/11/14
+
+				;This program will ask the user for input. The user will input an unsigned 32 bit value
+				;The program will pass value to a procedure, which will test the number for primality
+				;using a non-probablistic primality test. If the number is prime, a 0 will be returned
+				;if the number is not prime, the procedure will return one of the number's divisors
+				;the program will exit if the user enters a 0
+				;the program will display an error message if the user enters anything but positive numbers
+				;elapsed time will be printed after each test
+				;note: 1 is not prime. inputting a 1 should return 1
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+ 00000000			.data
+ 00000000 45 6E 74 65 72	inputString BYTE "Enter a non-negative integer (0 to exit):",0
+	   20 61 20 6E 6F
+	   6E 2D 6E 65 67
+	   61 74 69 76 65
+	   20 69 6E 74 65
+	   67 65 72 20 28
+	   30 20 74 6F 20
+	   65 78 69 74 29
+	   3A 00
+ 0000002A 20 69 73 20 61	isPrimeString BYTE " is a prime number",0
+	   20 70 72 69 6D
+	   65 20 6E 75 6D
+	   62 65 72 00
+ 0000003D 20 69 73 20 6E	isNotPrimeString BYTE " is not a prime number; it is divisible by ",0
+	   6F 74 20 61 20
+	   70 72 69 6D 65
+	   20 6E 75 6D 62
+	   65 72 3B 20 69
+	   74 20 69 73 20
+	   64 69 76 69 73
+	   69 62 6C 65 20
+	   62 79 20 00
+ 00000069 45 78 69 74 69	exitString BYTE "Exiting program...",0
+	   6E 67 20 70 72
+	   6F 67 72 61 6D
+	   2E 2E 2E 00
+ 0000007C 54 68 69 73 20	computationString BYTE "This computation took ",0
+	   63 6F 6D 70 75
+	   74 61 74 69 6F
+	   6E 20 74 6F 6F
+	   6B 20 00
+ 00000093 20 6D 69 6C 6C	msString BYTE " milliseconds",0
+	   69 73 65 63 6F
+	   6E 64 73 00
+
+ = 00000050			LMAX_DIGITS = 80
+ 000000A1  00000050 [		Linputarea    BYTE  LMAX_DIGITS dup(0),0
+	    00
+	   ] 00
+ 000000F2 20 3C 33 32 2D	overflow_msgL BYTE  " <32-bit integer overflow>",0
+	   62 69 74 20 69
+	   6E 74 65 67 65
+	   72 20 6F 76 65
+	   72 66 6C 6F 77
+	   3E 00
+ 0000010D 20 3C 69 6E 76	invalid_msgL  BYTE  " <invalid integer>",0
+	   61 6C 69 64 20
+	   69 6E 74 65 67
+	   65 72 3E 00
+ 00000120 20 3C 6E 65 67	neg_msg       BYTE  " <negative numbers not allowed>",0
+	   61 74 69 76 65
+	   20 6E 75 6D 62
+	   65 72 73 20 6E
+	   6F 74 20 61 6C
+	   6C 6F 77 65 64
+	   3E 00
+
+ 00000000			.code
+
+				;this macro will print a 32 bit number on screen
+				;parameters: the 32 bit number
+				mPrintDec32 MACRO num
+				push eax
+				mov eax, num
+				call writedec
+				pop eax
+				endm
+
+				;this macro will print an 8 bit number on screen
+				;parameters: the 8 bit number
+				mPrintDec8 MACRO num
+				push eax
+				xor eax, eax
+				mov al, num
+				call writedec
+				pop eax
+				endm
+
+				;our main procedure
+ 00000000			main proc
+
+ 00000000			lp:										;our loop for getting user input
+ 00000000  BA 00000000 R		mov edx, offset inputString			;ask user to input integer
+ 00000005  E8 00000000 E		call writestring
+					
+					;cf=0, eax!=0 if valid
+					;cf=1, eax=0 if invalid
+					;cf=0, eax=0 if exit
+ 0000000A  E8 00000109			call myreadint						;get input from user
+ 0000000F  66| 9C			pushf								;save our flags for when we determining input validity
+ 00000011  83 F8 00			cmp eax, 0							;if eax=0, the input is either invalid or exit code
+ 00000014  74 7E			je invalidOrExit					
+						
+ 00000016  50				push eax							;save eax (for after we call isPrime)
+ 00000017  50				push eax							;save eax (for after we call getmseconds)
+					
+ 00000018  E8 00000000 E		call getmseconds					;get time started
+ 0000001D  8B F0			mov esi, eax						;save in esi
+ 0000001F  58				pop eax								;restore eax (our original value)
+					
+
+ 00000020  E8 00000088			call isPrime						;test if eax is prime
+					
+ 00000025  50				push eax							;save results of primality test
+ 00000026  E8 00000000 E		call getmseconds					;get time finished
+ 0000002B  8B F8			mov edi, eax						;save in edi
+ 0000002D  58				pop eax								;restore results of primality test to eax
+					
+ 0000002E  83 F8 00			cmp eax, 0							;if eax=0, the number is prime
+ 00000031  5B				pop ebx								;ebx contains the value we tested
+ 00000032  75 1A			jne notPrime						;if not, execute notPrime code
+					
+					
+					mPrintDec32 ebx						;print our original value
+ 00000034  50		     1	push eax
+ 00000035  8B C3	     1	mov eax, ebx
+ 00000037  E8 00000000 E     1	call writedec
+ 0000003C  58		     1	pop eax
+ 0000003D  BA 0000002A R		mov edx, offset isPrimeString		;tell the user it is prime
+ 00000042  E8 00000000 E		call writestring
+ 00000047  E8 00000000 E		call crlf
+ 0000004C  EB 1D			jmp nextLoop						;get another input from user
+					
+ 0000004E				notPrime: 							;if ebx!=0, the number is not prime
+					mPrintDec32 ebx						;print our original value
+ 0000004E  50		     1	push eax
+ 0000004F  8B C3	     1	mov eax, ebx
+ 00000051  E8 00000000 E     1	call writedec
+ 00000056  58		     1	pop eax
+ 00000057  BA 0000003D R		mov edx, offset isNotPrimeString	
+ 0000005C  E8 00000000 E		call writestring					;tell the user it is not prime
+ 00000061  E8 00000000 E		call WriteDec						;give a divisor of the number
+ 00000066  E8 00000000 E		call crlf
+					
+ 0000006B				nextLoop:
+ 0000006B  2B FE			sub edi, esi						;time ended-time started=run time
+ 0000006D  BA 0000007C R		mov edx, offset computationString	;print "runtime is: "
+ 00000072  E8 00000000 E		call writestring
+					mPrintDec32 edi						;print runtime
+ 00000077  50		     1	push eax
+ 00000078  8B C7	     1	mov eax, edi
+ 0000007A  E8 00000000 E     1	call writedec
+ 0000007F  58		     1	pop eax
+ 00000080  BA 00000093 R		mov edx, offset msString			;print "milliseconds"
+ 00000085  E8 00000000 E		call writestring
+ 0000008A  E8 00000000 E		call crlf
+
+
+ 0000008F  E9 FFFFFF6C		jmp lp
+
+ 00000094			invalidOrExit:				;do we need to exit or loop again?
+ 00000094  66| 9D		popf						;restore our flags
+ 00000096  0F 89 FFFFFF64	jns lp						;a sign flag means we need to exit
+
+ 0000009C  BA 00000069 R	mov edx, offset exitString
+ 000000A1  E8 00000000 E	call writestring
+
+				exit
+ 000000AD			main ENDP
+
+				;tests if the number in eax is prime
+				;parameters: eax (the number we want to test)
+				;returns: eax (0 if the number is prime, a divisor if the number is not prime)
+				;will only modify eax
+ 000000AD			isPrime PROC uses edi edx ecx ebx
+ 000000B1  55			push ebp					;save old base pointer
+ 000000B2  8B EC		mov ebp, esp				;initialize the base pointer as the stack pointer
+				;sub esp, 4					;create space for a doubleword on the stack
+ 000000B4  8B 45 18		mov eax, [ebp+24]			;stack contents are as follows: 
+											;old base pointer
+											;return address +4
+											;ebx +8
+											;ecx +12
+											;edx +16
+											;edi +20
+											;the number we want to test +24
+				;we must test up to the square root of eax
+ 000000B7  8B C8		mov ecx, eax				;the number we are testing for primality will be referred to as P
+
+				;test if P=1
+ 000000B9  83 F8 01		cmp eax, 1
+ 000000BC  74 48		je case1					;1 is not prime
+
+				;test if P=2
+ 000000BE  83 F8 02		cmp eax, 2
+ 000000C1  74 38		je primeFound
+
+				;test if P is even
+ 000000C3  33 D2		xor edx, edx				;clear out edx
+ 000000C5  50			push eax					;save P
+ 000000C6  BF 00000002		mov edi, 2					;number is even if num%2=0
+ 000000CB  F7 F7		div edi           
+ 000000CD  58			pop eax						;restore P
+ 000000CE  83 FA 00		cmp edx, 0					;if edx is 0, we know 2 goes into it evenly
+ 000000D1  74 3A		je caseEven
+
+
+ 000000D3			lp2: 						;our loop for testing primality
+
+				;iterate through numbers 3, 5, 7...sqrt(eax)
+ 000000D3  8B D8		mov ebx, eax
+ 000000D5  2B D9		sub ebx, ecx				;ebx, the divisor we are testing
+ 000000D7  83 C3 03		add ebx, 3					;start at 3
+
+				;the test to end the loop
+ 000000DA  50			push eax
+ 000000DB  8B C3		mov eax, ebx				;ebx is the divisor we are testing
+ 000000DD  8B D3		mov edx, ebx
+ 000000DF  F7 E2		mul edx						;result will be in edx:eax
+				;loop should exit if the result of this multiplication is greater than P
+ 000000E1  83 FA 00		cmp edx, 0
+ 000000E4  75 15		jne primeFound
+
+				;restore eax to edx, because we need to test how the number compares to eax
+ 000000E6  5A			pop edx						;edx now contains P
+ 000000E7  3B C2		cmp eax, edx				;if the result of the multiplication is greater than P
+ 000000E9  77 10		ja primeFound				;we have testing up to sqrt(P), and it IS prime
+
+ 000000EB  8B C2		mov eax, edx				;eax has P again
+
+
+ 000000ED  33 D2		xor edx, edx				;clear our edx
+ 000000EF  50			push eax					;save eax
+ 000000F0  F7 F3		div ebx						;divide what is in edx:eax by ebx
+ 000000F2  58			pop eax						;balance stack by restoring P to eax
+ 000000F3  83 FA 00		cmp edx, 0					;edx stores the remainder of the division. 
+ 000000F6  74 0A		je notPrime					;if the remainder=0, it is evenly divisble, therefore not prime
+
+
+ 000000F8  49			dec ecx						;this decrement will make the loop counter skip even numbers
+ 000000F9  E2 D8		loop lp2					;test next number
+
+ 000000FB			primeFound: 	
+ 000000FB  B8 00000000			mov eax, 0				;if P is prime, eax will be 0
+ 00000100  EB 10			jmp return				;exit procedure
+
+ 00000102			notPrime: 
+ 00000102  8B C3			mov eax, ebx				;move the divisor into eax
+ 00000104  EB 0C			jmp return					;exit procedure
+
+ 00000106			case1:						;special case if P=1
+ 00000106  B8 00000001			mov eax, 1				
+ 0000010B  EB 05			jmp return
+ 0000010D			caseEven:					;special case if P is even
+ 0000010D  B8 00000002			mov eax, 2
+
+ 00000112			return:
+ 00000112  5D			pop ebp						;balance our registers
+
+
+				ret
+ 00000118			isPrime ENDP
+
+
+
+
+				; Modified from Irvine32.asm by Dr. Joe Dumas
+				; Reads a 32-bit unsigned decimal integer from standard
+				; input, stopping when the Enter key is pressed.
+				; All valid digits occurring before a non-numeric character
+				; are converted to the integer value. Leading spaces are
+				; ignored, and an optional leading + sign is permitted.
+
+				; Receives: nothing
+				; Returns:  If CF=0, the integer is valid, and EAX = binary value.
+				;   If CF=1, the integer is invalid and EAX = 0.
+
+				; Input a string of digits using ReadString.
+ 00000118			MyReadInt PROC uses ebx ecx edx esi
+
+ 0000011C  BA 000000A1 R		mov   edx,offset Linputarea
+ 00000121  8B F2			mov   esi,edx           	; save offset in ESI
+ 00000123  B9 00000050			mov   ecx,LMAX_DIGITS
+ 00000128  E8 00000000 E		call  ReadString
+ 0000012D  8B C8			mov   ecx,eax           	; save length in ECX
+ 0000012F  83 F9 00			cmp   ecx,0            		; greater than zero?
+ 00000132  75 07			jne   L1              		; yes: continue
+ 00000134  B8 00000000			mov   eax,0            		; no: set return value
+ 00000139  EB 68			jmp   L9              		; and exit
+
+				; Skip over any leading spaces.
+
+ 0000013B  8A 06		L1:	mov   al,[esi]         		; get a character from buffer
+ 0000013D  3C 20			cmp   al,' '          		; space character found?
+ 0000013F  75 06			jne   L2              		; no: check for a sign
+ 00000141  46				inc   esi              		; yes: point to next char
+ 00000142  E2 F7			loop  L1
+ 00000144  67& E3 4C			jcxz  L8              		; quit if all spaces
+
+				; Check for a leading sign.
+
+ 00000147  3C 2D		L2:	cmp   al,'-'          		; minus sign found?
+ 00000149  75 07			jne   L3              		; no: look for plus sign
+ 0000014B  BA 00000120 R		mov   edx, offset neg_msg       ; tell user negative numbers not allowed
+ 00000150  EB 41		        jmp   L8
+ 00000152  3C 2B		L3:	cmp   al,'+'          		; plus sign found?
+ 00000154  75 02			jne   L3A              		; no: must be a digit
+ 00000156  46				inc   esi              		; yes: skip over the sign
+ 00000157  49				dec   ecx              		; subtract from counter
+
+				; Test the first digit, and exit if it is nonnumeric.
+
+ 00000158  8A 06		L3A:mov  al,[esi]		; get first character
+ 0000015A  E8 00000000 E		call IsDigit		; is it a digit?
+ 0000015F  75 2D			jnz  L7A		; no: show error message
+
+				; Start to convert the number.
+
+ 00000161  B8 00000000		L4:	mov   eax,0           		; clear accumulator
+ 00000166  BB 0000000A			mov   ebx,10          		; EBX is the divisor
+
+				; Repeat loop for each digit.
+
+ 0000016B  8A 16		L5:	mov  dl,[esi]		; get character from buffer
+ 0000016D  80 FA 30			cmp  dl,'0'		; character < '0'?
+ 00000170  72 31			jb   L9
+ 00000172  80 FA 39			cmp  dl,'9'		; character > '9'?
+ 00000175  77 2C			ja   L9
+ 00000177  83 E2 0F			and  edx,0Fh		; no: convert to binary
+ 0000017A  52				push edx
+ 0000017B  F7 E3			mul  ebx		; EDX:EAX = EAX * EBX
+ 0000017D  5A				pop  edx
+
+ 0000017E  70 07			jo   L6			; quit if result too big for 32 bits
+ 00000180  03 C2			add  eax,edx         	; add new digit to AX
+ 00000182  70 03			jo   L6			; quit if result too big for 32 bits
+ 00000184  46				inc  esi              	; point to next digit
+ 00000185  EB E4			jmp  L5			; get next digit
+
+				; Carry out of 32 bits has occured, choose "integer overflow" messsage.
+
+ 00000187  BA 000000F2 R	L6:	mov  edx,OFFSET overflow_msgL
+ 0000018C  EB 05			jmp  L8
+
+				; Choose "invalid integer" message.
+
+ 0000018E			L7A:
+ 0000018E  BA 0000010D R		mov  edx,OFFSET invalid_msgL
+
+				; Display the error message pointed to by EDX.
+
+ 00000193  E8 00000000 E	L8:	call WriteString
+ 00000198  E8 00000000 E		call Crlf
+ 0000019D  F9				stc			; set Carry flag
+ 0000019E  B8 00000000			mov  eax,0            	; set return value to zero and exit
+ 000001A3			L9:	ret
+ 000001A8			MyReadInt ENDP
+
+
+
+
+
+				END main
+

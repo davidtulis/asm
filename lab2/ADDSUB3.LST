@@ -1,0 +1,32 @@
+Microsoft (R) Macro Assembler Version 6.11		    09/02/14 15:23:39
+ADDSUB3.ASM						     Page 1 - 1
+
+
+				; Title: Add and subtract
+				; David Tulis
+				; CPEN3710 lab 2
+				; 9/2/2014
+
+				INCLUDE Irvine16.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+ 0000				.data
+ 0000 12EF			val1		WORD 12EFh
+ 0002 ABCD			val2		WORD 0ABCDh
+ 0004 09A6			val3		WORD 09A6h
+ 0006 0000			finalVal 	WORD ?
+
+ 0000				.code
+ 0000				main PROC
+ 0000  B8 ---- R			mov ax, @data 		;puts our data in a register
+ 0003  8E D8				mov ds,ax			;outs our data segment register to where the data is
+ 0005  A1 0000 R			mov ax,val1			;get first value
+ 0008  03 06 0002 R			add ax,val2			;add second value to first value
+ 000C  03 06 0004 R			add ax,val3			;subtract third value from previous value
+ 0010  A3 0006 R			mov finalVal, ax	;store results
+ 0013  E8 0000 E			call DumpRegs		;display results
+					
+					exit
+ 001A				main ENDP
+				END main

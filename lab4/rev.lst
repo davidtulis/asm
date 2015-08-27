@@ -1,0 +1,62 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    09/16/14 17:01:36
+rev.asm							     Page 1 - 1
+
+
+				;David Tulis bqb428
+				;CPEN 3710 lab 4
+				;9/16/14
+
+				;This program will take the string "I am David Tulis", and reverse it
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+ 00000000			.data
+ 00000000 49 20 61 6D 20	source BYTE "I am David Tulis, a student in CPEN3710.",0	;size=41
+	   44 61 76 69 64
+	   20 54 75 6C 69
+	   73 2C 20 61 20
+	   73 74 75 64 65
+	   6E 74 20 69 6E
+	   20 43 50 45 4E
+	   33 37 31 30 2E
+	   00
+ 00000029  00000029 [		target BYTE SIZEOF source DUP('#')
+	    23
+	   ]
+
+ 00000000			.code
+ 00000000			main PROC
+					;int 3
+ 00000000  BE FFFFFFFF R		mov esi,OFFSET source-1
+ 00000005  B9 00000028			mov ecx,SIZEOF target-1
+ 0000000A  BB 00000029 R		mov ebx,OFFSET target
+					
+ 0000000F				lp:
+						;esi will contain our location in the source, going forward
+						;al, our loop counter, will start at the back and go to the front
+ 0000000F  8A 06				mov al,[esi]
+ 00000011  88 44 19 FF				mov [ebx+ecx-1],al
+ 00000015  46					inc esi
+ 00000016  E8 00000000 E			call DumpRegs
+ 0000001B  E2 F2				LOOP lp
+
+ 0000001D  BE 00000029 R		mov esi,OFFSET target
+ 00000022  BB 00000001			mov ebx,1
+ 00000027  B9 00000029			mov ecx,SIZEOF target
+ 0000002C  E8 00000000 E		call DumpMem
+ 00000031  BA 00000000 R		mov edx,OFFSET source
+ 00000036  E8 00000000 E		call WriteString
+ 0000003B  E8 00000000 E		call crlf
+ 00000040  BA 00000029 R		mov edx,OFFSET target
+ 00000045  E8 00000000 E		call WriteString
+				exit
+ 00000051			main ENDP
+				END main

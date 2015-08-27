@@ -1,0 +1,15 @@
+;David Tulis
+;CPEN3710 lab 11
+;Due 11/25/14
+
+.model small, C
+
+INCLUDE Irvine32.inc
+.data
+
+.code
+main PROC
+
+exit
+main ENDP
+END MAIN

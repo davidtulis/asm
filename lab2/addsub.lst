@@ -1,0 +1,29 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    09/02/14 15:11:12
+addsub.asm						     Page 1 - 1
+
+
+				; Title: Add and subtract
+				; David Tulis
+				; CPEN3710 lab 2
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+ 00000000			.code
+ 00000000			main PROC
+
+ 00000000  B8 00010000			mov eax,10000h		;EAX=10000h
+ 00000005  05 00040000			add eax,40000h		;EAX=50000h
+ 0000000A  2D 00020000			sub eax,20000h		;EAX=30000h
+ 0000000F  E8 00000000 E		call DumpRegs		;display contents of registers
+					
+					exit
+ 0000001B			main ENDP
+				END main

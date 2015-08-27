@@ -1,0 +1,150 @@
+Microsoft (R) Macro Assembler Version 10.00.40219.01	    11/20/14 15:47:49
+callee.asm						     Page 1 - 1
+
+
+				;TITLE callee (callee.asm)
+
+				; Joe Dumas
+				; CPEN 3710
+
+				; This program is called by a C++ program with the
+				; 3 coefficients A, B, C of the quadratic formula.
+				; It computes B^2 - 4AC and returns the result in EAX.
+				; Target: protected-address mode.
+
+				;include Irvine32.inc
+				.386
+				.model FLAT, C 
+
+				public quadform				; quadform can be called by external code
+
+ 00000000			.data
+ 00000000 0000			zero WORD 0
+ 00000002 0002			two WORD 2
+ 00000004 0004			four WORD 4
+
+ 00000000			.code
+
+ 00000000			quadform proc
+					
+ 00000000  55				push  ebp				; save caller's base pointer
+ 00000001  8B EC			mov   ebp, esp			; set up a new base pointer
+					
+					;saved base pointer +0
+					;return address +4
+					;a +8
+					;b +12
+					;c +16
+					;return1 +20
+					;return2 +24
+					
+ 00000003  D9 45 0C			fld real4 ptr[ebp+12]	
+ 00000006  D9 45 0C			fld real4 ptr[ebp+12]
+ 00000009  DE C9			fmul					;b*b
+					;st(0)=b*b
+
+ 0000000B  D9 45 08			fld real4 ptr[ebp+8]	;a
+ 0000000E  D9 45 10			fld real4 ptr[ebp+16]	;c
+											;float stack:	c
+											;				a
+ 00000011  DE C9			fmul					;a*c
+					;st(0)=a*c
+ 00000013  DF 05 00000004 R		fild four
+ 00000019  DE C9			fmul					;4*a*c
+
+ 0000001B  CC				int 3
+ 0000001C  DE E9			fsub					;b*b-4*a*c
+ 0000001E  DF 05 00000000 R		fild zero
+ 00000024  D8 D1			fcom					;compare the descriminant to 0
+ 00000026  DF E0			fnstsw ax
+ 00000028  9E				sahf
+ 00000029  77 59			ja complexRoots
+ 0000002B  DE C1			fadd					;gets rid of 0 on stack
+ 0000002D  D9 FA			fsqrt					;square root of descriminant
+ 0000002F  D9 45 0C			fld real4 ptr[ebp+12]	;b
+ 00000032  D9 E0			fchs					;-b
+ 00000034  DE C1			fadd					;-b+sqrt(descriminant)
+ 00000036  DF 05 00000002 R		fild two				;2
+ 0000003C  D9 45 08			fld real4 ptr[ebp+8]	;a
+ 0000003F  DE C9			fmul					;2*a
+ 00000041  DE F9			fdiv					;-b+sqrt(desc)/(2*a)
+ 00000043  8B 7D 14			mov edi, [ebp+20]
+ 00000046  D9 1F			fstp real4 ptr[edi]		;store the plus in the stack
+					
+						
+
+ 00000048  D9 45 0C			fld real4 ptr[ebp+12]	
+ 0000004B  D9 45 0C			fld real4 ptr[ebp+12]
+ 0000004E  DE C9			fmul					;b*b
+ 00000050  D9 45 08			fld real4 ptr[ebp+8]	;a
+ 00000053  D9 45 10			fld real4 ptr[ebp+16]	;c
+ 00000056  DE C9			fmul					;a*c
+ 00000058  DF 05 00000004 R		fild four				;
+ 0000005E  DE C9			fmul					;4*a*c
+ 00000060  DE E9			fsub					;b*b-4*a*c
+ 00000062  D9 FA			fsqrt					;square root of descriminant
+ 00000064  D9 45 0C			fld real4 ptr[ebp+12]	;b
+ 00000067  D9 E0			fchs					;-b
+ 00000069  D8 E1			fsub st(0), st(1)		;-b-sqrt(desc)
+ 0000006B  DF 05 00000002 R		fild two				;2
+ 00000071  D9 45 08			fld real4 ptr[ebp+8]	;a
+ 00000074  DE C9			fmul					;2*a
+ 00000076  DE F9			fdiv					;-b-sqrt(desc)/(2*a)
+					
+ 00000078  8B 75 18			mov esi, [ebp+24]
+ 0000007B  D9 1E			fstp real4 ptr[esi]		;store the plus in the stack
+					
+ 0000007D  B8 00000000			mov eax, 0
+ 00000082  5D				pop ebp
+ 00000083  C3				ret
+
+ 00000084				complexRoots:
+ 00000084  5D				pop ebp
+ 00000085  B8 FFFFFFFF			mov eax, -1
+ 0000008A  C3				ret				; return (caller to clean up args)
+
+ 0000008B			quadform endp
+
+				END
+Microsoft (R) Macro Assembler Version 10.00.40219.01	    11/20/14 15:47:49
+callee.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000006 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000008B DWord	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+quadform . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000008B Public C
+  complexRoots . . . . . . . . .	L Near	 00000084 _TEXT	
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000001h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+four . . . . . . . . . . . . . .	Word	 00000004 _DATA	
+two  . . . . . . . . . . . . . .	Word	 00000002 _DATA	
+zero . . . . . . . . . . . . . .	Word	 00000000 _DATA	
+
+	   0 Warnings
+	   0 Errors
